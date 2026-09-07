@@ -1,0 +1,8 @@
+.venv/
+outputs/
+__pycache__/
+*.pyc
+.addr_probe.json
+php/kfacilities_config.php
+.env
+.env.*

@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% set sel_sport = q.sport %}
+{% block title %}{% if q.sport or q.ward or q.t %}{{ res.date_label }}に個人利用できる{% if q.ward %}{{ q.ward }}の{% endif %}体育館・スポーツ施設{% if q.sport %}（{{ q.sport }}）{% endif %} | {{ site_name }}{% else %}今日、個人で使える体育館・スポーツ施設を横断検索（名古屋市） | {{ site_name }}{% endif %}{% endblock %}
+{% block description %}{{ res.date_label }}に名古屋市で個人利用できるスポーツセンター・中学校体育館を、時間帯・種目・区・現在地から探せます。各施設の予定表（PDF/HTML）と市の一覧から取り込み、出典と取得日時を表示。{% endblock %}
+{% block head %}
+<script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"WebSite","name":site_name,"url":public_base,"potentialAction":{"@type":"SearchAction","target":public_base ~ "?sport={search_term_string}","query-input":"required name=search_term_string"}} | tojson }}</script>
+<script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+ {"@type":"Question","name":"名古屋市のスポーツセンターは予約なしで個人利用できますか？","acceptedAnswer":{"@type":"Answer","text":"できます。トレーニング室・プールは開館時間中に窓口で利用券を買って使えます。第2競技場などの個人開放は施設ごとに「個人利用可能日」が決まっていて、専用利用（団体の予約）が入っていない時間帯だけ使えます。このサイトはその予定表を施設横断で検索します。"}},
+ {"@type":"Question","name":"市の予約システム（スポーツ・レクリエーション情報システム）で個人利用の空きは見られますか？","acceptedAnswer":{"@type":"Answer","text":"見られません。市のシステムは競技場の全面・一部使用（団体の専用利用）の抽選と空き予約が対象です（名古屋おしえてダイヤル FAQ 728）。個人利用の予定は各施設が別々に PDF や HTML で公開しています。"}},
+ {"@type":"Question","name":"中学校の体育館を個人で使えますか？","acceptedAnswer":{"@type":"Answer","text":"名古屋市は全市立中学校の体育施設を「地域スポーツセンター」として開放しています。体育館は曜日ごとに個人利用日と団体利用日が決まっていて、個人利用日は管理事務室で登録すれば無料で使えます（月〜土 18:00〜21:00）。優先種目は学校ごとに違います。"}},
+ {"@type":"Question","name":"このサイトの情報はどこから来ていますか？","acceptedAnswer":{"@type":"Answer","text":"各スポーツセンターの公式サイトが公開している個人利用予定表（PDF・HTML）と、名古屋市の「地域スポーツセンター一覧」PDF から、日時・種目・○×という事実だけを取り込んでいます。各行に出典リンクと取得日時を付けています。予定表そのものは転載していません。"}}
+]} | tojson }}</script>
+{% endblock %}
+{% block body %}
+<section class="hero">
+  <span class="badge">名古屋市 デモ版 ・ スポーツセンター {{ fx.n_center }} ＋ 中学校体育館 {{ fx.n_school }}</span>
+  <h1>今日、<span class="ac">個人で使える体育館</span>を、<br class="pc">施設を横断して探す。</h1>
+  <p class="lead">スポーツセンターごとにばらばらの「個人利用予定表」（PDF・HTML）と、市の中学校開放一覧を1つの表にまとめました。日付・時間帯・種目・区・現在地で絞り込めます。予約システムには載らない「個人開放」の時間帯が対象です。</p>
+</section>
+
+<form class="filter card" method="get" action="{{ root if root else './' }}" id="f">
+  <div class="fgrid">
+    <div class="fcol">
+      <div class="flabel">日付</div>
+      <div class="chips">
+        <label class="chip"><input type="radio" name="date" value="today" {% if q.date=='today' %}checked{% endif %}><span>今日</span></label>
+        <label class="chip"><input type="radio" name="date" value="tomorrow" {% if q.date=='tomorrow' %}checked{% endif %}><span>明日</span></label>
+        <label class="chip chip-date"><input type="radio" name="date" value="{{ q.date if q.date not in ('today','tomorrow') else '' }}" id="date-custom" {% if q.date not in ('today','tomorrow') %}checked{% endif %}><span>日付指定</span><input type="date" id="date-pick" value="{{ q.date if q.date not in ('today','tomorrow') else '' }}" min="{{ today.isoformat() }}"></label>
+      </div>
+    </div>
+    <div class="fcol">
+      <div class="flabel">時間帯</div>
+      <div class="chips">
+        {% for k, v in time_filters.items() %}<label class="chip"><input type="radio" name="t" value="{{ k }}" {% if q.t==k %}checked{% endif %}><span>{{ v }}</span></label>{% endfor %}
+      </div>
+    </div>
+    <div class="fcol">
+      <div class="flabel">種目</div>
+      <div class="chips">
+        <label class="chip"><input type="radio" name="sport" value="" {% if not q.sport %}checked{% endif %}><span>すべて</span></label>
+        {% for s in fx.sports %}<label class="chip"><input type="radio" name="sport" value="{{ s }}" {% if q.sport==s %}checked{% endif %}><span>{{ s }}</span></label>{% endfor %}
+      </div>
+    </div>
+    <div class="fcol fcol-row">
+      <div>
+        <div class="flabel">区</div>
+        <select name="ward" class="sel"><option value="">すべての区</option>{% for w in fx.wards %}<option value="{{ w }}" {% if q.ward==w %}selected{% endif %}>{{ w }}</option>{% endfor %}</select>
+      </div>
+      <div>
+        <div class="flabel">施設の種類</div>
+        <select name="kind" class="sel"><option value="">両方</option><option value="center" {% if q.kind=='center' %}selected{% endif %}>スポーツセンター（有料）</option><option value="school" {% if q.kind=='school' %}selected{% endif %}>中学校体育館（無料・要登録）</option></select>
+      </div>
+      <div>
+        <div class="flabel">現在地</div>
+        <button type="button" class="btn btn-ghost" id="geo">近い順に並べる</button>
+        <input type="hidden" name="lat" id="lat" value="{{ q.lat or '' }}"><input type="hidden" name="lng" id="lng" value="{{ q.lng or '' }}">
+      </div>
+    </div>
+  </div>
+  <div class="factions"><button type="submit" class="btn btn-primary">この条件で探す</button><a class="btn btn-link" href="{{ root if root else './' }}">条件をクリア</a></div>
+</form>
+
+<section class="results">
+  <div class="rhead">
+    <h2>{{ res.date_label }}{% if q.t %}・{{ time_filters[q.t] }}{% endif %}{% if q.sport %}・{{ q.sport }}{% endif %}{% if q.ward %}・{{ q.ward }}{% endif %} に個人利用できる場所 <span class="cnt">{{ res.count }}件</span></h2>
+    <p class="rmeta">{% if q.lat %}現在地から近い順 ・ {% endif %}取り込み {{ (res.last_ingest or '')[:16] | replace('T',' ') }} ・ ○＝個人利用できる時間帯（混雑は分かりません）</p>
+  </div>
+  {% if res.count == 0 %}
+  <div class="empty card">
+    <p class="empty-t">この条件では見つかりませんでした。</p>
+    <p>時間帯を「いつでも」にする、種目を「すべて」にする、日付を明日にする、のどれかで広がります。中学校体育館の個人利用日は平日夜間（18〜21時）だけなので、昼間は「スポーツセンター」に絞ってください。</p>
+  </div>
+  {% endif %}
+  <div class="cards">
+  {% for f in res["items"] %}
+    <article class="card fc {{ f.kind }}">
+      <div class="fc-top">
+        <div>
+          <span class="kind {{ f.kind }}">{{ '無料・要登録' if f.kind=='school' else 'スポーツセンター' }}</span>
+          <h3><a href="{{ root }}facility/{{ f.id }}">{{ f.name }}</a></h3>
+          <p class="addr">{{ f.ward }} ・ {{ f.address }}{% if f.station %} ・ {{ f.station }}{% endif %}{% if f.distance_km is not none %} ・ <b>{{ f.distance_km }}km</b>{% endif %}</p>
+        </div>
+      </div>
+      {% for a in f.areas %}
+      <div class="area">
+        <div class="area-h"><span class="area-n">{{ a.name }}</span>{% if a.fee %}<span class="fee">{{ a.fee }}</span>{% elif f.fee and f.kind=='school' %}<span class="fee">{{ f.fee }}</span>{% endif %}</div>
+        <div class="slots">
+          {% for s in a.slots %}<span class="slot {{ s.status }}" title="{{ s.note or '' }}">{{ s.slot }}{% if s.sub_area %}<i>{{ s.sub_area }}</i>{% endif %}{% if s.start %}<small>{{ s.start }}–{{ s.end }}</small>{% endif %}</span>{% endfor %}
+        </div>
+        {% set sp = a.slots[0].sports if a.slots and a.slots[0].sports else a.sports %}
+        {% if sp %}<div class="tags">{% for s in sp[:8] %}<span class="tag {% if q.sport and q.sport in s %}hit{% endif %}">{{ s }}</span>{% endfor %}</div>{% endif %}
+        <p class="src">{{ a.slots[0].certainty }} ・ <a href="{{ a.source_url }}" target="_blank" rel="noopener">出典: {{ a.source_title or '公式サイト' }}</a> ・ 取得 {{ (a.fetched_at or '')[:16] | replace('T',' ') }}</p>
+      </div>
+      {% endfor %}
+      {% if f.note %}<p class="fnote">{{ f.note }}</p>{% endif %}
+      <div class="fc-foot"><span>{{ f.hours }}</span>{% if f.tel %}<a href="tel:{{ f.tel }}">{{ f.tel }}</a>{% endif %}<a href="{{ f.url }}" target="_blank" rel="noopener">公式サイト</a><a href="{{ root }}facility/{{ f.id }}">14日分の予定 →</a></div>
+    </article>
+  {% endfor %}
+  </div>
+</section>
+
+<section class="steps">
+  <h2>使い方は3ステップ</h2>
+  <div class="stepgrid">
+    <div class="step"><span class="num">1</span><h3>日付と時間帯を選ぶ</h3><p>「今日・夜間」なら仕事帰りに行ける場所だけが残ります。</p></div>
+    <div class="step"><span class="num">2</span><h3>種目・区・現在地で絞る</h3><p>バドミントン・卓球は中学校体育館（無料）に多く、武道・ダンスはスポーツセンターの第2競技場です。</p></div>
+    <div class="step"><span class="num">3</span><h3>出典を見て、施設に確認</h3><p>各行の出典リンクが元の予定表です。○は「使える時間帯」で混雑は分かりません。初めての中学校は管理事務室で登録します。</p></div>
+  </div>
+</section>
+
+<section class="compare">
+  <h2>市の予約システムとの違い</h2>
+  <div class="cmpgrid">
+    <div class="cmp no"><h3>スポーツ・レクリエーション情報システム</h3><p>競技場の全面・一部使用（団体の専用利用）の抽選と空き予約。<b>個人利用の予定は載っていません</b>（おしえてダイヤル FAQ 728）。</p></div>
+    <div class="cmp yes"><h3>Kurage 施設検索</h3><p>各施設が別々に公開している<b>個人利用予定表</b>と市の中学校開放一覧を1つにまとめ、日付・時間帯・種目・区・現在地で横断検索。各行に出典と取得日時。</p></div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  var pick=document.getElementById('date-pick'), custom=document.getElementById('date-custom');
+  pick.addEventListener('change',function(){custom.value=pick.value;custom.checked=true;});
+  pick.addEventListener('focus',function(){custom.checked=true;});
+  document.getElementById('geo').addEventListener('click',function(){
+    var b=this; if(!navigator.geolocation){b.textContent='位置情報が使えません';return;}
+    b.textContent='取得中…';
+    navigator.geolocation.getCurrentPosition(function(p){document.getElementById('lat').value=p.coords.latitude.toFixed(5);document.getElementById('lng').value=p.coords.longitude.toFixed(5);document.getElementById('f').submit();},function(){b.textContent='位置情報が取得できませんでした';});
+  });
+  document.querySelectorAll('.fc a[href]').forEach(function(a){a.addEventListener('click',function(){if(window.gtag){gtag('event','facility_click',{link:a.getAttribute('href')});}});});
+})();
+</script>
+{% endblock %}

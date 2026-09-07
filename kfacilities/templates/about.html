@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}仕組みと出典 — 地域のPDFを「条件を入れると答えが出る」形にする | {{ site_name }}{% endblock %}
+{% block description %}Kurage 施設検索の仕組み。施設ごとにばらばらの個人利用予定表（PDF・HTML）を決定論パーサで取り込み、SQLiteで検索。LLMは使わない。出典・免責・導入キットの説明。{% endblock %}
+{% block body %}
+<nav class="bc"><a href="{{ root if root else './' }}">検索</a> › 仕組みと出典</nav>
+<section class="hero small">
+  <span class="badge">地域PDF → 条件検索 汎用キット</span>
+  <h1>公開されている予定表を、<span class="ac">条件を入れると答えが出る</span>形にする。</h1>
+  <p class="lead">名古屋市のスポーツセンターは、個人利用の予定を施設ごとに別々の形式（○×のPDF、お知らせに添付のPDF、HTMLの文章）で公開しています。市の予約システムは団体の専用利用が対象で、個人利用の予定は載りません。このサイトはそれらを1つの表に正規化し、日付・時間帯・種目・区・現在地で引けるようにしたものです。</p>
+</section>
+
+<section class="steps">
+  <h2>取り込みの流れ</h2>
+  <div class="stepgrid">
+    <div class="step"><span class="num">1</span><h3>集める</h3><p>設定ファイルに書いた公式ページから、予定表のPDF・お知らせ・利用案内を取得します（1秒に1回まで・UA明示）。</p></div>
+    <div class="step"><span class="num">2</span><h3>読む（LLM不使用）</h3><p>○×の格子は「行＝日付」「列＝日付」の両レイアウトを文字の桁位置で解釈。曜日ルール（第1・3金曜休など）は設定から日付に展開。市の一覧PDFは表として抽出。</p></div>
+    <div class="step"><span class="num">3</span><h3>引く</h3><p>SQLite に「施設×場所×日付×時間帯×面」の行として保存し、各行に出典URLと取得日時を持たせます。検索は SQL だけで、利用のたびに LLM 費用は発生しません。</p></div>
+  </div>
+</section>
+
+<section class="compare">
+  <h2>いまの対象（名古屋市 デモ版）</h2>
+  <div class="cmpgrid">
+    <div class="cmp yes"><h3>スポーツセンター {{ fx.n_center }}施設</h3><p>第2競技場の個人利用予定表（緑・東・千種・枇杷島・中村・北）は○×PDFから日別に取り込み。トレーニング室・プールは公式の開館ルールから展開。天白・昭和は競技場の個人開放が無いためプール・トレーニング室のみ。</p></div>
+    <div class="cmp yes"><h3>中学校体育館 {{ fx.n_school }}校</h3><p>名古屋市「地域スポーツセンター一覧」PDF から、曜日ごとの個人利用日と優先種目、週休日、管理事務室の電話を取り込み（月〜土 18〜21時・無料・要登録）。</p></div>
+    <div class="cmp no"><h3>まだ取れていないもの</h3><p>露橋の柔道場・剣道場（画像PDF）、守山・中・名東・志段味・市体育館の競技場個人開放（予定表が未公開）、稲永（2027年1月4日まで休止）。当日の混雑・満員は元の予定表にも無い情報です。</p></div>
+  </div>
+</section>
+
+<section class="list">
+  <h2>出典と扱い</h2>
+  <div class="tscroll">
+  <table class="tbl">
+    <thead><tr><th>出典</th><th>何を取るか</th><th>更新</th></tr></thead>
+    <tbody>
+      <tr><td>各スポーツセンターの公式サイト（指定管理者: JPN・名古屋市教育スポーツ協会 ほか）</td><td>個人利用予定表の日時・面・○×、開館時間、料金</td><td>週1回（多くの施設は利用日の14日前に確定）</td></tr>
+      <tr><td>名古屋市「地域スポーツセンター一覧」PDF（中学校体育施設のスポーツ開放）</td><td>学校ごとの曜日別の個人利用日・優先種目・週休日・連絡先</td><td>年度ごと</td></tr>
+      <tr><td>名古屋おしえてダイヤル FAQ 724・726・728</td><td>開館時間の共通ルール、個人利用登録、予約システムの対象</td><td>随時</td></tr>
+      <tr><td>国土地理院 地名検索API</td><td>住所→緯度経度（現在地からの距離）</td><td>初回のみ</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="anote">予定表や表そのものは転載していません。取り込むのは「日時・種目・○×」という事実で、各行に出典リンクと取得日時を付けています。名古屋市公式サイトの内容は、二次利用の表示が無いものは担当課の許諾が必要とされているため、事実の抽出とリンクに留めています。</p>
+</section>
+
+<section class="compare">
+  <h2>キットとして使う</h2>
+  <div class="cmpgrid">
+    <div class="cmp yes"><h3>何が入っているか</h3><p>取り込み設定（YAML）・○×格子パーサ・曜日ルール展開・一覧PDFの表パーサ・SQLite・検索UI/API・施設ページ（SEO/AEO: JSON-LD、sitemap、llms.txt）・systemd/公開プロキシの雛形。MITライセンスのソースコード一式。</p></div>
+    <div class="cmp yes"><h3>他の地域に差し替える</h3><p>regions/&lt;地域&gt;.yaml に施設と出典を書くだけです。○×PDFは layout（行=日付／列=日付）と面の並びを指定、HTMLだけの施設は曜日ルールで書きます。一覧PDFは列番号の対応表を差し替えます。</p></div>
+  </div>
+  <p class="anote">導入キットは Kurage App Store で販売予定です。AI-IT顧問契約のキャンペーン期間中は商品代金が無料になります。<a href="https://exbridge.jp/ai-it-komon.html?ref=kfacilities" target="_blank" rel="noopener">AI-IT顧問契約</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Kurage facilities search (kfacilities) :18384
+After=network-online.target
+
+[Service]
+WorkingDirectory=/home/kojima/work/kfacilities
+Environment=KFACILITIES_PUBLIC_BASE=https://kurage.exbridge.jp/kfacilities.php/
+ExecStart=/home/kojima/work/kfacilities/.venv/bin/uvicorn kfacilities.app:app --host 0.0.0.0 --port 18384 --proxy-headers --forwarded-allow-ips=*
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}施設一覧（スポーツセンター・中学校体育館） | {{ site_name }}{% endblock %}
+{% block description %}名古屋市のスポーツセンターと地域スポーツセンター（中学校体育館）の一覧。各施設の個人利用できる日・時間帯の14日表へ。{% endblock %}
+{% block body %}
+<nav class="bc"><a href="{{ root if root else './' }}">検索</a> › 施設一覧</nav>
+<h1 class="pt">施設一覧</h1>
+{% for kind, label in kind_label.items() %}
+<section class="list">
+  <h2>{{ label }} <span class="cnt">{{ rows | selectattr('kind','equalto',kind) | list | length }}</span></h2>
+  <div class="tscroll">
+  <table class="tbl">
+    <thead><tr><th>施設</th><th>区</th><th>所在地</th><th>休館</th><th>料金</th></tr></thead>
+    <tbody>
+    {% for r in rows if r.kind == kind %}
+    <tr><td><a href="{{ root }}facility/{{ r.id }}">{{ r.name }}</a></td><td>{{ r.ward }}</td><td>{{ r.address }}</td><td>{{ r.closed or '' }}</td><td>{{ r.fee or '' }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

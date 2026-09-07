@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ site_name }}{% endblock %}</title>
+<meta name="description" content="{% block description %}名古屋市のスポーツセンターと中学校体育館で、今日・明日に個人で使える時間帯を施設横断で検索。出典と取得日時つき。{% endblock %}">
+<link rel="canonical" href="{{ public_base }}{{ path }}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ site_name }}">
+<meta property="og:title" content="{{ self.title() }}">
+<meta property="og:description" content="{{ self.description() }}">
+<meta property="og:url" content="{{ public_base }}{{ path }}">
+<meta property="og:image" content="{{ public_base }}static/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="{{ root }}static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="{{ root }}static/style.css?v={{ version }}">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-BP0650KDFR"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-BP0650KDFR');</script>
+{% block head %}{% endblock %}
+</head>
+<body>
+<header class="hdr">
+  <div class="wrap hdr-in">
+    <a class="brand" href="{{ root if root else './' }}"><span class="brand-mark">K</span><span class="brand-name">{{ site_name }}</span><span class="brand-sub">名古屋市 デモ版</span></a>
+    <nav class="nav">
+      <a href="{{ root }}facilities">施設一覧</a>
+      <a href="{{ root }}about">仕組みと出典</a>
+      <a href="https://kappstore.exbridge.jp/" target="_blank" rel="noopener">導入キット</a>
+    </nav>
+  </div>
+</header>
+<main class="wrap">
+{% block body %}{% endblock %}
+</main>
+<footer class="ftr">
+  <div class="wrap">
+    <p class="ftr-note">予定は変更されることがあります。○は「個人利用できる時間帯」で、混雑・満員・当日の変更は分かりません。来場前に施設へ確認してください。各行の出典リンクから元の予定表を確認できます。</p>
+    <p class="ftr-links"><a href="{{ root }}about">仕組みと出典</a> ・ <a href="{{ root }}llms.txt">llms.txt</a> ・ <a href="{{ root }}api/search?date=today">API</a> ・ <a href="https://kurage.exbridge.jp/" target="_blank" rel="noopener">Kurage</a> ・ <a href="https://exbridge.jp/" target="_blank" rel="noopener">株式会社エクスブリッジ</a></p>
+  </div>
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>
