@@ -79,7 +79,8 @@ def canonical_sport(p: str) -> str:
 
 
 def _sports(cell: str) -> list[str]:
-    c = re.sub(r"[\s　]", "", cell.replace("\n", ""))
+    # セル内の改行は種目の区切り（「バドミントン\nバスケットボール」）
+    c = re.sub(r"[ \t　]", "", cell.replace("\n", "、"))
     c = re.sub(r"[（(].*?[）)]", "", c)
     # 「・」は「レク・バレーボール」の一部なので区切りにしない
     parts = [p for p in re.split(r"[、,/／]", c) if p]
