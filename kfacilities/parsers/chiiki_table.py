@@ -57,15 +57,37 @@ def _clean(s: str | None) -> str:
     return re.sub(r"[\s　]+", "", (s or "").replace("\n", ""))
 
 
+# 表のセルは列幅で文字が切れる（「ソフトバレーボ」「バスケッ」）ので、正規名の前方一致で戻す
+CANONICAL_SPORTS = [
+    "バドミントン", "卓球", "バレーボール", "ソフトバレーボール", "バスケットボール", "レク・バレーボール", "レク・インディアカ",
+    "インディアカ", "ソフトテニス", "フットサル", "ミニバスケットボール", "バウンドテニス", "ユニホック", "ドッジボール",
+    "剣道", "柔道", "空手", "空手道", "合気道", "少林寺拳法", "なぎなた", "太極拳", "ダンス", "体操", "エアロビクス", "ヨガ",
+    "軟式野球", "ソフトボール", "サッカー", "テニス", "軽スポーツ", "レクリエーション", "ニュースポーツ", "ラージボール卓球",
+]
+
+
+def canonical_sport(p: str) -> str:
+    p = p.replace("レク・・", "レク・")
+    if p in CANONICAL_SPORTS:
+        return p
+    for c in CANONICAL_SPORTS:
+        if len(p) >= 3 and c.startswith(p):
+            return c
+    if p.startswith("レク") and not p.startswith("レク・"):
+        return canonical_sport("レク・" + p[2:])
+    return p
+
+
 def _sports(cell: str) -> list[str]:
     c = re.sub(r"[\s　]", "", cell.replace("\n", ""))
     c = re.sub(r"[（(].*?[）)]", "", c)
-    parts = [p for p in re.split(r"[、,・/／]", c) if p]
+    # 「・」は「レク・バレーボール」の一部なので区切りにしない
+    parts = [p for p in re.split(r"[、,/／]", c) if p]
     out = []
     for p in parts:
-        p = p.replace("レク", "レク・") if p.startswith("レク") and not p.startswith("レク・") else p
-        p = p.replace("レク・・", "レク・")
-        out.append(p)
+        p = canonical_sport(p)
+        if p and p not in out:
+            out.append(p)
     return out
 
 

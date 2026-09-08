@@ -131,3 +131,5 @@ table.grid td.na{color:#c2cad0}
 .ftr{border-top:1px solid var(--line);margin-top:40px;padding:22px 0 32px;background:var(--soft)}
 .ftr-note{font-size:13px;color:var(--sub);margin:0 0 8px}
 .ftr-links{font-size:13px;margin:0}
+.more{display:flex;flex-direction:column;align-items:center;gap:8px;margin:18px 0 0;text-align:center;font-size:13px;color:var(--sub)}
+.more .btn{width:auto;min-width:240px}

@@ -72,7 +72,7 @@
   </div>
   {% endif %}
   <div class="cards">
-  {% for f in res["items"] %}
+  {% for f in shown %}
     <article class="card fc {{ f.kind }}">
       <div class="fc-top">
         <div>
@@ -97,6 +97,9 @@
     </article>
   {% endfor %}
   </div>
+  {% if shown | length < res.count %}
+  <p class="more"><a class="btn btn-ghost" href="?{{ more_qs }}">残り {{ res.count - (shown | length) }}件も表示する</a><span>絞り込む方が早いときは、上の「区」か「現在地」を使ってください。</span></p>
+  {% endif %}
 </section>
 
 <section class="steps">

@@ -157,13 +157,18 @@ def facets() -> dict:
 NAGOYA_WARDS = ["千種区", "東区", "北区", "西区", "中村区", "中区", "昭和区", "瑞穂区", "熱田区", "中川区", "港区", "南区", "守山区", "緑区", "名東区", "天白区"]
 
 
+PAGE_SIZE = 24
+
+
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request, date: str = "today", t: str = "", sport: str = "", ward: str = "", kind: str = "", lat: float | None = None, lng: float | None = None):
+def index(request: Request, date: str = "today", t: str = "", sport: str = "", ward: str = "", kind: str = "", lat: float | None = None, lng: float | None = None, n: str = ""):
     d = parse_date(date)
     res = search(d, t, sport, ward, kind, lat, lng)
     fx = facets()
     q = {"date": date if date in ("today", "tomorrow") else d.isoformat(), "t": t, "sport": sport, "ward": ward, "kind": kind, "lat": lat, "lng": lng}
-    return templates.TemplateResponse(request, "index.html", {"root": root_prefix(request), "res": res, "fx": fx, "q": q, "today": dt.date.today(), "path": ""})
+    shown = res["items"] if n == "all" else res["items"][:PAGE_SIZE]
+    more_qs = "&".join(f"{k}={v}" for k, v in q.items() if v not in (None, "")) + "&n=all"
+    return templates.TemplateResponse(request, "index.html", {"root": root_prefix(request), "res": res, "shown": shown, "more_qs": more_qs, "fx": fx, "q": q, "today": dt.date.today(), "path": ""})
 
 
 @app.get("/api/search")
