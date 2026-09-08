@@ -119,7 +119,7 @@ def parse(pdf_path: str, cmap: ColumnMap | None = None) -> list[School]:
                         sunday=_clean(row[cmap.sunday]),
                     )
                     for wd, col in zip(WEEKDAYS, cmap.weekdays):
-                        raw = (row[col] or "").replace("\n", "")
+                        raw = row[col] or ""  # 改行は種目の区切りなので残す
                         c = _clean(raw)
                         s.weekday_cells[wd] = c
                         if not c or c in ("̶", "-", "－", "―"):
@@ -131,8 +131,8 @@ def parse(pdf_path: str, cmap: ColumnMap | None = None) -> list[School]:
                         else:
                             if "※" in c:
                                 s.notes.append(f"{wd}: {c}")
-                                c = re.sub(r"※\d*", "", c)
-                            s.individual_days[wd] = _sports(c)
+                                raw = re.sub(r"※\d*", "", raw)
+                            s.individual_days[wd] = _sports(raw)
                     schools.append(s)
     return schools
 
