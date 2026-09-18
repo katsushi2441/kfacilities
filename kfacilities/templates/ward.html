@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ w }}の体育館・スポーツセンターで個人利用できる日 | {{ site_name }}{% endblock %}
+{% block description %}名古屋市{{ w }}のスポーツセンターと中学校体育館{{ rows|length }}か所を一覧にして、個人で利用できる日・時間帯の14日表へつなぎます。出典と取得日時つき。{% endblock %}
+{% block body %}
+<nav class="bc"><a href="{{ root if root else './' }}">検索</a> › <a href="{{ root }}ward/">区から探す</a> › {{ w }}</nav>
+<h1 class="pt">{{ w }}で個人利用できる体育館</h1>
+<p class="lead">名古屋市{{ w }}にある{% if n_center %}スポーツセンター{{ n_center }}か所と{% endif %}中学校体育館（地域スポーツセンター）{{ n_school }}か所です。施設名を押すと、個人で利用できる日・時間帯の14日分の表が出ます。</p>
+
+<p class="src"><a class="btn" href="{{ root }}?ward={{ w }}&date=today">{{ w }}で、今日あいている時間を見る</a></p>
+
+{% for kind, label in kind_label.items() %}
+{% set ks = rows | selectattr('kind','equalto',kind) | list %}
+{% if ks %}
+<section class="list">
+  <h2>{{ label }} <span class="cnt">{{ ks|length }}</span></h2>
+  <div class="tscroll">
+  <table class="tbl">
+    <thead><tr><th>施設</th><th>所在地</th><th>休館</th><th>料金</th></tr></thead>
+    <tbody>
+    {% for r in ks %}
+    <tr><td><a href="{{ root }}facility/{{ r.id }}">{{ r.name }}</a></td><td>{{ r.address }}</td><td>{{ r.closed or '' }}</td><td>{{ r.fee or '' }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+{% endfor %}
+
+<section class="list">
+  <h2>となりの区</h2>
+  <p class="src">{% for o in others %}<a href="{{ root }}ward/{{ o.slug }}/">{{ o.name }}</a>{% if not loop.last %} ・ {% endif %}{% endfor %}</p>
+</section>
+{% endblock %}

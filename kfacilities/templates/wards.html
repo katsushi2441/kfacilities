@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}区から探す（名古屋市16区の体育館・スポーツセンター） | {{ site_name }}{% endblock %}
+{% block description %}名古屋市16区それぞれの、スポーツセンターと中学校体育館の一覧。区を選ぶと、個人で利用できる日・時間帯の14日表へつながります。{% endblock %}
+{% block body %}
+<nav class="bc"><a href="{{ root if root else './' }}">検索</a> › 区から探す</nav>
+<h1 class="pt">区から探す</h1>
+<p class="lead">名古屋市16区の、個人で利用できる体育館とスポーツセンターです。区を選ぶと、その区の施設が一覧で出ます。</p>
+<div class="tscroll">
+<table class="tbl">
+  <thead><tr><th>区</th><th>スポーツセンター</th><th>中学校体育館</th><th>合計</th></tr></thead>
+  <tbody>
+  {% for w in wards %}
+  <tr><td><a href="{{ root }}ward/{{ w.slug }}/">{{ w.name }}</a></td><td>{{ w.n_center or '' }}</td><td>{{ w.n_school or '' }}</td><td>{{ w.n }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="src">施設をまとめて見るときは<a href="{{ root }}facilities">施設一覧</a>へ。</p>
+{% endblock %}

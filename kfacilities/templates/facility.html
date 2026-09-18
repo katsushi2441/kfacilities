@@ -6,7 +6,7 @@
 <script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":site_name,"item":public_base},{"@type":"ListItem","position":2,"name":"施設一覧","item":public_base ~ "facilities"},{"@type":"ListItem","position":3,"name":f.name,"item":public_base ~ "facility/" ~ f.id}]} | tojson }}</script>
 {% endblock %}
 {% block body %}
-<nav class="bc"><a href="{{ root if root else './' }}">検索</a> › <a href="{{ root }}facilities">施設一覧</a> › {{ f.name }}</nav>
+<nav class="bc"><a href="{{ root if root else './' }}">検索</a> › <a href="{{ root }}ward/">区から探す</a>{% if ward_slug %} › <a href="{{ root }}ward/{{ ward_slug }}/">{{ f.ward }}</a>{% endif %} › {{ f.name }}</nav>
 <section class="fhead card">
   <span class="kind {{ f.kind }}">{{ kind_label[f.kind] }}{% if f.kind=='school' %} ・ 無料・要登録{% endif %}</span>
   <h1>{{ f.name }}</h1>

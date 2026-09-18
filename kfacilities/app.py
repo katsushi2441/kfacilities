@@ -36,9 +36,15 @@ templates = Jinja2Templates(directory=os.path.join(HERE, "templates"))
 
 
 def root_prefix(request: Request) -> str:
-    """相対パス用のプレフィックス。/facility/x → ../ 、/ や /about → 空。"""
-    segs = [s for s in request.url.path.split("/") if s]
-    depth = max(0, len(segs) - 1)
+    """相対パス用のプレフィックス。/facility/x → ../ 、/ や /about → 空。
+
+    **末尾スラッシュで階層がひとつ増える。** /ward/midori/ はブラウザから見ると
+    ディレクトリなので ../../ が要る（/ward/midori と同じ ../ にすると
+    リンクが /ward/facility/... を指して404になる）。
+    """
+    path = request.url.path
+    segs = [s for s in path.split("/") if s]
+    depth = len(segs) if path.endswith("/") else max(0, len(segs) - 1)
     return "../" * depth
 
 
@@ -230,7 +236,7 @@ def facility_page(request: Request, fid: str):
     f = facility_detail(fid)
     if not f:
         return HTMLResponse("<h1>施設が見つかりません</h1>", status_code=404)
-    return templates.TemplateResponse(request, "facility.html", {"root": root_prefix(request), "f": f, "today": dt.date.today(), "path": f"facility/{fid}"})
+    return templates.TemplateResponse(request, "facility.html", {"root": root_prefix(request), "f": f, "today": dt.date.today(), "ward_slug": WARD_SLUG.get(f.get("ward") or ""), "path": f"facility/{fid}"})
 
 
 @app.get("/facilities", response_class=HTMLResponse)
@@ -241,6 +247,61 @@ def facilities_page(request: Request):
     finally:
         con.close()
     return templates.TemplateResponse(request, "facilities.html", {"root": root_prefix(request), "rows": rows, "path": "facilities"})
+
+
+# --- 区から探す -----------------------------------------------------------
+# 施設名のページ（/facility/<id>）は検索で 2.7〜8.3位に入っていて、90日で11クリック
+# 取れている。効いているのは「固有名詞＋やりたいこと」という語の形なので、同じ形の
+# もう一段（「区名＋体育館」）を用意する。スラッグは kflood の区ページと同じ綴り。
+WARD_SLUG = {"千種区": "chikusa", "東区": "higashi", "北区": "kita", "西区": "nishi",
+             "中村区": "nakamura", "中区": "naka", "昭和区": "showa", "瑞穂区": "mizuho",
+             "熱田区": "atsuta", "中川区": "nakagawa", "港区": "minato", "南区": "minami",
+             "守山区": "moriyama", "緑区": "midori", "名東区": "meito", "天白区": "tempaku"}
+SLUG_WARD = {v: k for k, v in WARD_SLUG.items()}
+
+
+def _ward_rows(ward: str) -> list[dict]:
+    con = dbm.connect()
+    try:
+        return [dict(r) for r in con.execute(
+            "SELECT * FROM facility WHERE ward=? ORDER BY kind, sort_key", (ward,)).fetchall()]
+    finally:
+        con.close()
+
+
+def _ward_counts() -> list[dict]:
+    con = dbm.connect()
+    try:
+        rows = con.execute("SELECT ward, kind, COUNT(*) n FROM facility GROUP BY ward, kind").fetchall()
+    finally:
+        con.close()
+    by: dict[str, dict] = {}
+    for ward, kind, n in rows:
+        d = by.setdefault(ward, {"name": ward, "slug": WARD_SLUG.get(ward, ""), "n_center": 0, "n_school": 0, "n": 0})
+        d["n_center" if kind == "center" else "n_school"] += n
+        d["n"] += n
+    return [by[w] for w in NAGOYA_WARDS if w in by and by[w]["slug"]]
+
+
+@app.get("/ward/", response_class=HTMLResponse)
+def wards_page(request: Request):
+    return templates.TemplateResponse(request, "wards.html", {"root": root_prefix(request), "wards": _ward_counts(), "path": "ward/"})
+
+
+@app.get("/ward/{slug}/", response_class=HTMLResponse)
+def ward_page(request: Request, slug: str):
+    ward = SLUG_WARD.get(slug)
+    if not ward:
+        return HTMLResponse("<h1>その区のページはありません</h1>", status_code=404)
+    rows = _ward_rows(ward)
+    if not rows:
+        return HTMLResponse("<h1>その区の施設が登録されていません</h1>", status_code=404)
+    return templates.TemplateResponse(request, "ward.html", {
+        "root": root_prefix(request), "w": ward, "rows": rows,
+        "n_center": sum(1 for r in rows if r["kind"] == "center"),
+        "n_school": sum(1 for r in rows if r["kind"] != "center"),
+        "others": [x for x in _ward_counts() if x["name"] != ward],
+        "path": f"ward/{slug}/"})
 
 
 @app.get("/about", response_class=HTMLResponse)
@@ -272,7 +333,9 @@ def sitemap():
     finally:
         con.close()
     today = dt.date.today().isoformat()
-    urls = [PUBLIC_BASE, PUBLIC_BASE + "about", PUBLIC_BASE + "facilities"] + [PUBLIC_BASE + f"facility/{i}" for i in ids]
+    urls = ([PUBLIC_BASE, PUBLIC_BASE + "about", PUBLIC_BASE + "facilities", PUBLIC_BASE + "ward/"]
+            + [PUBLIC_BASE + f"ward/{w['slug']}/" for w in _ward_counts()]
+            + [PUBLIC_BASE + f"facility/{i}" for i in ids])
     body = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(f"<url><loc>{u}</loc><lastmod>{today}</lastmod></url>\n" for u in urls) + "</urlset>\n"
     return Response(content=body, media_type="application/xml")
 
@@ -292,7 +355,7 @@ def llms():
         f"- サイトマップ: {PUBLIC_BASE}sitemap.xml\n\n"
         "## 出典\n- 各スポーツセンターの公式サイト（指定管理者: JPN・名古屋市教育スポーツ協会 ほか）の個人利用予定表\n"
         "- 名古屋市「地域スポーツセンター一覧」PDF（中学校体育施設のスポーツ開放）\n- 名古屋おしえてダイヤル FAQ 724・726・728（開館時間・登録・予約の仕組み）\n\n"
-        "## 買い切り版\n"
+        "## オンプレミス版\n"
         "- 商品ページ: https://kappstore.exbridge.jp/app.php?id=8e76e53cf264cc1c\n"
         "- 税込55,000円。ソースコード（MIT）・取り込みスクリプト・設置手順書を同梱。地域のPDFを差し替えれば他都市でも動く。\n\n"
         "## 免責\n予定は変更されることがある。○は「個人利用できる時間帯」で、混雑・満員は分からない。来場前に施設へ確認すること。\n"
