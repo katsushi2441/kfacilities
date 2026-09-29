@@ -45,6 +45,8 @@ $body = substr($res, $hsize);
 // 計測タグ（kurage 系は kurage.exbridge.jp の simpletrack）を HTML にだけ差し込む
 if (stripos($ctype, 'text/html') !== false) {
     $tag = '<script>(function(){var s=document.createElement("script");s.src="https://kurage.exbridge.jp/simpletrack.php?url="+encodeURIComponent(location.href)+"&ref="+encodeURIComponent(document.referrer);document.head.appendChild(s)})();</script>';
+    // 再販パートナー募集の枠（中身は kurage_web/partner-bar.js。kurage.exbridge.jp 以外では何も出さない）
+    $tag .= '<script src="https://kurage.exbridge.jp/partner-bar.js" defer></script>';
     $body = str_replace('</head>', $tag . '</head>', $body);
 }
 echo $body;
